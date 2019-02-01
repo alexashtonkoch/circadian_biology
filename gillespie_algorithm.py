@@ -1,4 +1,5 @@
 import numpy as np
+from scipy.integrate import odeint
 import matplotlib.pyplot as plt
 import random
 
@@ -23,7 +24,8 @@ def gillespie_draw(parameters, propensity_function, population):
     # Calculatie the time interval between reactions
     time_interval = - (1 / propensity_sum) * np.log(random.uniform(0,1)) 
     
-    propensity_distribution = propensities / propensity_sum # normalise propensities  
+    propensity_distribution = propensities / propensity_sum # normalise propensities 
+    
     
     # Decide which reaction happens by randomly sampling the discrete (normalised) propensity distribution
     reaction = sample_reaction(propensity_distribution)
@@ -34,23 +36,20 @@ def gillespie_algorithm(parameters, propensity_function, transitions, population
     '''
     
     '''
-    population_over_time = np.array([])
-    time_points = np.array([])
+    time_points = []
+    population_over_time = []
     t = 0
     while t < t_stop:
         # 
-        np.append(time_points, t)
-        np.append(population_over_time, population.copy())
+        time_points.append(t)
+        population_over_time.append(population)
+        
         reaction_index, time_interval = gillespie_draw(parameters, propensity_function, population)
-        np.add(population, transitions[reaction_index]) # Check if np.add can be replaced by + operator 
+        op = transitions[reaction_index]
+        
+        population = np.add(population, op) # Check if np.add can be replaced by + operator 
         t += time_interval    
-        print(reaction_index)
-        '''
-            REACTION INDEX IS ONLY ZERO
-        '''
-    print(population_over_time)
-    print(time_points)
-    return population_over_time, time_points
+    return np.array(population_over_time), np.array(time_points)
 
 
 '''
@@ -74,7 +73,7 @@ protein_production_parameters = [beta_m, beta_p, gamma]
 
 population = np.array([0, 0]) # Initialise the system
 time_points = np.array([])
-simulation_time = 1000
+simulation_time = 10
 
 # Propensities needs to be a function as the number of molcules affects the liklihood of a reaction
 def protein_production(parameters, population):
@@ -88,14 +87,14 @@ population, time_points = gillespie_algorithm(protein_production_parameters, pro
 print(time_points)
 print(population)
 
-'''
+
 fig, ax = plt.subplots(1, 2, figsize=(14, 5))
 
 # Plot mRNA trajectories
-ax[0].plot(time_points, population, '-', lw=0.3, alpha=0.2)
+ax[0].plot(time_points, population[:,0], '-')
 
 # Plot protein trajectories
-ax[1].plot(time_points, population, 'k-', lw=0.3, alpha=0.2)
+ax[1].plot(time_points, population[:,1], 'k-')
 
 # Label axes
 ax[0].set_xlabel('dimensionless time')
@@ -104,7 +103,7 @@ ax[0].set_ylabel('number of mRNAs')
 ax[1].set_ylabel('number of proteins')
 plt.tight_layout()
 plt.show()
-'''
+
 
              
 # Initialise the system in its initial state n=n(0)
