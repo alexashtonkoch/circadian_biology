@@ -47,9 +47,9 @@ def gillespie_algorithm(parameters, propensity_function, transitions, population
         reaction_index, time_interval = gillespie_draw(parameters, propensity_function, population)
         op = transitions[reaction_index]
         
-        population = np.add(population, op) # Check if np.add can be replaced by + operator 
-        t += time_interval    
-    return np.array(population_over_time), np.array(time_points)
+        t += time_interval
+        population = np.add(population, op) # Check if np.add can be replaced by + operator   
+    return np.array(time_points), np.array(population_over_time)
 
 
 '''
@@ -73,28 +73,48 @@ protein_production_parameters = [beta_m, beta_p, gamma]
 
 population = np.array([0, 0]) # Initialise the system
 time_points = np.array([])
-simulation_time = 10
+simulation_time = 100
 
 # Propensities needs to be a function as the number of molcules affects the liklihood of a reaction
-def protein_production(parameters, population):
+def protein_production(parameters, pop):
     beta_m, beta_p, gamma = parameters
-    m, p = population
+    m, p = pop
     return np.array([beta_m, m, beta_p * m, gamma * p])
 
-#
-population, time_points = gillespie_algorithm(protein_production_parameters, protein_production, protein_production_transitions, population, simulation_time)
+# Perform stochatsic simulations
+simulations = 100
+data = []
+for i in range(simulations):
+    random.seed()
+    time_points, population = gillespie_algorithm(protein_production_parameters, protein_production, protein_production_transitions, population, simulation_time)
+    data.append([time_points, population])
+    # Re-initialise the system
+    population = np.array([0, 0]) 
+    time_points = np.array([])
 
-print(time_points)
-print(population)
-
+data = np.array(data)
 
 fig, ax = plt.subplots(1, 2, figsize=(14, 5))
 
 # Plot mRNA trajectories
-ax[0].plot(time_points, population[:,0], '-')
+for i in range(simulations):
+    ax[0].plot(data[i,0], ((data[i])[1])[:,0], '-')
+    
+# Plot mRNA mean
+#ax[0].plot(data[0,0], (data[:,1]).mean(), '-')
+
+'''
+
+Mean currently doesn't work as the number of time points do not match and therefore cannot average over each point for the populations
+
+'''
 
 # Plot protein trajectories
-ax[1].plot(time_points, population[:,1], 'k-')
+for i in range(simulations):
+    ax[1].plot(data[i,0], (data[i,1])[:,1], 'k-')
+
+# Plot protein mean
+#ax[1].plot(data, data[:,:,1].mean(axis=0), 'r-')
 
 # Label axes
 ax[0].set_xlabel('dimensionless time')
